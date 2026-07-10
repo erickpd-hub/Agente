@@ -188,7 +188,7 @@ export default function App() {
 
   // Profile configuration states
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-    return localStorage.getItem('tech_support_logged_in') !== 'false';
+    return localStorage.getItem('tech_support_logged_in') === 'true';
   });
 
   const [profileName, setProfileName] = useState(() => localStorage.getItem('tech_support_p_name') || 'Admin Principal');
