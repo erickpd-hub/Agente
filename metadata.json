@@ -1,0 +1,6 @@
+{
+  "name": "TechSupport IA Chat",
+  "description": "Internal technical support chat with Groq API integration and knowledge base support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
