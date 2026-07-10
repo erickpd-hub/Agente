@@ -18,8 +18,11 @@ const app = express();
 
 app.use(express.json());
 
+// Set up a router to handle endpoints so that we are compatible whether Vercel routes with or without the "/api" prefix.
+const router = express.Router();
+
 // API route for chatting with Groq
-app.post("/api/chat", async (req, res) => {
+router.post("/chat", async (req, res) => {
   try {
     const { messages, knowledgeBaseContext, model, systemPrompt: clientSystemPrompt } = req.body;
 
@@ -68,7 +71,7 @@ app.post("/api/chat", async (req, res) => {
 });
 
 // Basic API route for uploading files (Knowledge Base simulation)
-app.post("/api/upload", (req, res, next) => {
+router.post("/upload", (req, res, next) => {
   // Ensure the temporary directory exists before upload
   if (!fs.existsSync(tempDir)) {
     try {
@@ -145,5 +148,9 @@ app.post("/api/upload", (req, res, next) => {
     res.status(500).json({ error: "Failed to process files: " + error.message });
   }
 });
+
+// Mount the router both with "/api" prefix and at "/" root (Vercel rewrite safety fallback)
+app.use("/api", router);
+app.use("/", router);
 
 export default app;
