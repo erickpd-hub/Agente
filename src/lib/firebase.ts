@@ -13,15 +13,15 @@ import {
 import { getAuth } from 'firebase/auth';
 import { PlatformUser, Message, UploadedFile } from '../types';
 
-// Firebase configuration from firebase-applet-config.json (supports VITE_ environment overrides for production/Vercel)
+// Firebase configuration (supports VITE_ environment overrides for production/Vercel)
 const firebaseConfig = {
-  projectId: (import.meta as any).env.VITE_FIREBASE_PROJECT_ID || "reflecting-totem-v7c1c",
-  appId: (import.meta as any).env.VITE_FIREBASE_APP_ID || "1:474319793204:web:b04ff3c4a86dcf180e6e61",
-  apiKey: (import.meta as any).env.VITE_FIREBASE_API_KEY || "AIzaSyAdnXJiCEkd-mkhoD7YSgLzuHbXAOPKm9Y",
-  authDomain: (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN || "reflecting-totem-v7c1c.firebaseapp.com",
-  firestoreDatabaseId: (import.meta as any).env.VITE_FIREBASE_DATABASE_ID || "ai-studio-techsupportiacha-1fbfbdd5-1ea6-4759-b094-3e0ce6074c97",
-  storageBucket: (import.meta as any).env.VITE_FIREBASE_STORAGE_BUCKET || "reflecting-totem-v7c1c.firebasestorage.app",
-  messagingSenderId: (import.meta as any).env.VITE_FIREBASE_MESSAGING_SENDER_ID || "474319793204"
+  projectId: (import.meta as any).env.VITE_FIREBASE_PROJECT_ID || "",
+  appId: (import.meta as any).env.VITE_FIREBASE_APP_ID || "",
+  apiKey: (import.meta as any).env.VITE_FIREBASE_API_KEY || "",
+  authDomain: (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN || "",
+  firestoreDatabaseId: (import.meta as any).env.VITE_FIREBASE_DATABASE_ID || "",
+  storageBucket: (import.meta as any).env.VITE_FIREBASE_STORAGE_BUCKET || "",
+  messagingSenderId: (import.meta as any).env.VITE_FIREBASE_MESSAGING_SENDER_ID || ""
 };
 
 // Initialize Firebase App

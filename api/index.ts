@@ -1,13 +1,14 @@
+import "dotenv/config";
 import express from "express";
 import path from "path";
 import multer from "multer";
 import Groq from "groq-sdk";
 import fs from "fs";
 import os from "os";
-// @ts-ignore
-import pdf from "pdf-parse";
-// @ts-ignore
-import mammoth from "mammoth";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const pdf = require("pdf-parse");
+const mammoth = require("mammoth");
 
 // Use system temp directory for file uploads which is Vercel friendly
 const tempDir = path.join(os.tmpdir(), "uploads");

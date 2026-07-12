@@ -147,8 +147,10 @@ export default function App() {
   const [knowledgeBase, setKnowledgeBase] = useState<UploadedFile[]>([]);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
 
-  const defaultAdminEmail = (import.meta as any).env.VITE_ADMIN_EMAIL || 'admin@empresa.com';
-  const defaultAdminPassword = (import.meta as any).env.VITE_ADMIN_PASSWORD || 'AdminUser124!';
+  const defaultAdminEmail = (import.meta as any).env.VITE_ADMIN_EMAIL || '';
+  const defaultAdminPassword = (import.meta as any).env.VITE_ADMIN_PASSWORD || '';
+  const defaultUserEmail = (import.meta as any).env.VITE_USER_DEMO_EMAIL || '';
+  const defaultUserPassword = (import.meta as any).env.VITE_USER_DEMO_PASSWORD || '';
 
   const [users, setUsers] = useState<PlatformUser[]>(() => {
     const saved = localStorage.getItem('technical_support_users');
@@ -169,7 +171,7 @@ export default function App() {
     }
     return [
       { id: '1', name: 'Admin Principal', email: defaultAdminEmail, role: 'admin', password: defaultAdminPassword },
-      { id: '2', name: 'Usuario Demo', email: 'usuario@empresa.com', role: 'user', password: 'user123456' }
+      { id: '2', name: 'Usuario Demo', email: defaultUserEmail, role: 'user', password: defaultUserPassword }
     ];
   });
 
