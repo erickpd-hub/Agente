@@ -14,14 +14,15 @@ import { getAuth } from 'firebase/auth';
 import { PlatformUser, Message, UploadedFile } from '../types';
 
 // Firebase configuration (supports VITE_ environment overrides for production/Vercel)
+const env = (import.meta as any).env || process.env;
 const firebaseConfig = {
-  projectId: (import.meta as any).env.VITE_FIREBASE_PROJECT_ID || "",
-  appId: (import.meta as any).env.VITE_FIREBASE_APP_ID || "",
-  apiKey: (import.meta as any).env.VITE_FIREBASE_API_KEY || "",
-  authDomain: (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN || "",
-  firestoreDatabaseId: (import.meta as any).env.VITE_FIREBASE_DATABASE_ID || "",
-  storageBucket: (import.meta as any).env.VITE_FIREBASE_STORAGE_BUCKET || "",
-  messagingSenderId: (import.meta as any).env.VITE_FIREBASE_MESSAGING_SENDER_ID || ""
+  projectId: env.VITE_FIREBASE_PROJECT_ID || "",
+  appId: env.VITE_FIREBASE_APP_ID || "",
+  apiKey: env.VITE_FIREBASE_API_KEY || "",
+  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || "",
+  firestoreDatabaseId: env.VITE_FIREBASE_DATABASE_ID || "",
+  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || "",
+  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || ""
 };
 
 // Initialize Firebase App
