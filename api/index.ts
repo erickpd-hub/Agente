@@ -5,8 +5,11 @@ import multer from "multer";
 import Groq from "groq-sdk";
 import fs from "fs";
 import os from "os";
-import * as pdf from 'pdf-parse';
-import * as mammoth from 'mammoth';
+import { createRequire } from 'module';
+const _require = createRequire(new URL('.', import.meta.url).href);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const pdf: (buf: Buffer) => Promise<{ text: string }> = (_require('pdf-parse') as any).default ?? _require('pdf-parse');
+const mammoth = _require('mammoth') as { extractRawText: (opts: { buffer: Buffer }) => Promise<{ value: string }> };
 
 // Use system temp directory for file uploads which is Vercel friendly
 const tempDir = path.join(os.tmpdir(), "uploads");

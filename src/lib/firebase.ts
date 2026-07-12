@@ -13,23 +13,38 @@ import {
 import { getAuth } from 'firebase/auth';
 import { PlatformUser, Message, UploadedFile } from '../types';
 
-// Firebase configuration (supports VITE_ environment overrides for production/Vercel)
+// Firebase configuration — values injected by Vite (import.meta.env) at build time
 const env = (import.meta as any).env || process.env;
+
 const firebaseConfig = {
-  projectId: env.VITE_FIREBASE_PROJECT_ID || "",
-  appId: env.VITE_FIREBASE_APP_ID || "",
-  apiKey: env.VITE_FIREBASE_API_KEY || "",
-  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || "",
-  firestoreDatabaseId: env.VITE_FIREBASE_DATABASE_ID || "",
-  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || "",
-  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || ""
+  projectId:         env.VITE_FIREBASE_PROJECT_ID          || "",
+  appId:             env.VITE_FIREBASE_APP_ID              || "",
+  apiKey:            env.VITE_FIREBASE_API_KEY             || "",
+  authDomain:        env.VITE_FIREBASE_AUTH_DOMAIN         || "",
+  storageBucket:     env.VITE_FIREBASE_STORAGE_BUCKET      || "",
+  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
 };
+
+// Separate: custom Firestore database id (not part of the base config object)
+const firestoreDatabaseId = env.VITE_FIREBASE_DATABASE_ID || "(default)";
+
+// Guard: warn loudly when required variables are missing (helps debug Vercel blank-page issues)
+const requiredKeys = ["apiKey", "authDomain", "projectId", "appId"] as const;
+const missingKeys = requiredKeys.filter(k => !firebaseConfig[k]);
+if (missingKeys.length > 0) {
+  console.warn(
+    "[Firebase] Missing environment variables:",
+    missingKeys.map(k => `VITE_FIREBASE_${k.replace(/([A-Z])/g, "_$1").toUpperCase()}`).join(", "),
+    "— some features may not work correctly."
+  );
+}
 
 // Initialize Firebase App
 const app = initializeApp(firebaseConfig);
 
 // Initialize Firestore with custom databaseId
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId || '(default)');
+export const db = getFirestore(app, firestoreDatabaseId);
+
 export const auth = getAuth(app);
 
 // --- Error Handler for Firestore (As requested by skill) ---
