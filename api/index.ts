@@ -9,7 +9,7 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const pdf: (buf: Buffer) => Promise<{ text: string }> = require("pdf-parse");
+const pdf: (buf: Buffer) => Promise<{ text: string }> = require("pdf-parse-new");
 const mammoth = require("mammoth");
 
 // Use system temp directory for file uploads which is Vercel friendly
