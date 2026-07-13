@@ -839,7 +839,7 @@ export default function App() {
                     }}
                     id="login-email"
                     autoComplete="off"
-                    className="w-full bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-100 rounded px-3 py-2 pl-9 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-100 rounded px-3 py-2 pl-9 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-950 dark:focus:ring-neutral-100"
                   />
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-400">
                     <Mail size={14} />
@@ -859,7 +859,7 @@ export default function App() {
                     }}
                     id="login-password"
                     autoComplete="new-password"
-                    className="w-full bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-100 rounded px-3 py-2 pl-9 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-100 rounded px-3 py-2 pl-9 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-950 dark:focus:ring-neutral-100"
                   />
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-400">
                     <Lock size={14} />
@@ -874,7 +874,7 @@ export default function App() {
               <div className="pt-2">
                 <button 
                   onClick={handleLogin}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded py-2.5 text-sm font-semibold transition-colors shadow hover:shadow-md cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full bg-neutral-950 hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200 text-white rounded py-2.5 text-sm font-semibold transition-colors shadow hover:shadow-md cursor-pointer flex items-center justify-center gap-2"
                 >
                   <span>Entrar</span>
                 </button>
