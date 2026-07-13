@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, FirebaseApp } from 'firebase/app';
 import { 
   getFirestore,
   doc, 
@@ -8,14 +8,14 @@ import {
   getDocs, 
   query, 
   where,
-  deleteDoc
+  deleteDoc,
+  Firestore
 } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { getAuth, Auth } from 'firebase/auth';
 import { PlatformUser, Message, UploadedFile } from '../types';
 
 // Firebase configuration — values injected by Vite (import.meta.env) at build time
-const env = (import.meta as any).env || process.env;
-const isProd = (import.meta as any).env?.PROD ?? false;
+const env = (import.meta as any).env || {};
 
 const firebaseConfig = {
   projectId:         env.VITE_FIREBASE_PROJECT_ID          || "",
@@ -29,24 +29,61 @@ const firebaseConfig = {
 // Separate: custom Firestore database id (not part of the base config object)
 const firestoreDatabaseId = env.VITE_FIREBASE_DATABASE_ID || "(default)";
 
-// Guard: warn when required Firebase config values are missing
+// Guard: check required Firebase config values
 const requiredKeys = ["apiKey", "authDomain", "projectId", "appId"] as const;
 const missingKeys = requiredKeys.filter(k => !firebaseConfig[k]);
-if (isProd && missingKeys.length > 0) {
-  console.error('[Firebase] Missing env variables in production:', missingKeys);
+
+if (missingKeys.length > 0) {
+  console.warn('[Firebase] Missing env variables:', missingKeys.join(', '),
+    '— Firebase features will be unavailable. Set VITE_* env vars in Vercel dashboard.');
 }
 
-// Initialize Firebase App only if keys are present, otherwise stub/warn
-const app = (missingKeys.length === 0) 
-  ? initializeApp(firebaseConfig) 
-  : null;
+// --- Lazy initialization to prevent crashes when env vars are missing ---
+let _app: FirebaseApp | null = null;
+let _db: Firestore | null = null;
+let _auth: Auth | null = null;
+let _initAttempted = false;
 
-// Initialize Firestore with custom databaseId
-export const db = getFirestore(app, firestoreDatabaseId);
+function initFirebase(): boolean {
+  if (_initAttempted) return _app !== null;
+  _initAttempted = true;
 
-export const auth = getAuth(app);
+  if (missingKeys.length > 0) {
+    console.warn('[Firebase] Skipping initialization — missing required config keys.');
+    return false;
+  }
 
-// --- Error Handler for Firestore (As requested by skill) ---
+  try {
+    _app = initializeApp(firebaseConfig);
+    _db = getFirestore(_app, firestoreDatabaseId);
+    _auth = getAuth(_app);
+    return true;
+  } catch (err) {
+    console.error('[Firebase] Failed to initialize:', err);
+    _app = null;
+    _db = null;
+    _auth = null;
+    return false;
+  }
+}
+
+/** Returns the Firestore instance, or null if Firebase is not configured. */
+export function getDb(): Firestore | null {
+  initFirebase();
+  return _db;
+}
+
+/** Returns the Auth instance, or null if Firebase is not configured. */
+export function getFirebaseAuth(): Auth | null {
+  initFirebase();
+  return _auth;
+}
+
+// Legacy exports for backward compatibility (may be null)
+export const db = null as Firestore | null; // Use getDb() instead
+export const auth = null as Auth | null;     // Use getFirebaseAuth() instead
+
+// --- Error Handler for Firestore ---
 export enum OperationType {
   CREATE = 'create',
   UPDATE = 'update',
@@ -74,15 +111,16 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
+  const authInstance = getFirebaseAuth();
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
-      userId: auth.currentUser?.uid || null,
-      email: auth.currentUser?.email || null,
-      emailVerified: auth.currentUser?.emailVerified || null,
-      isAnonymous: auth.currentUser?.isAnonymous || null,
-      tenantId: auth.currentUser?.tenantId || null,
-      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+      userId: authInstance?.currentUser?.uid || null,
+      email: authInstance?.currentUser?.email || null,
+      emailVerified: authInstance?.currentUser?.emailVerified || null,
+      isAnonymous: authInstance?.currentUser?.isAnonymous || null,
+      tenantId: authInstance?.currentUser?.tenantId || null,
+      providerInfo: authInstance?.currentUser?.providerData?.map(provider => ({
         providerId: provider.providerId,
         email: provider.email,
       })) || []
@@ -94,11 +132,23 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
+// --- Helper: get db or return null with warning ---
+function requireDb(operation: string): Firestore | null {
+  const database = getDb();
+  if (!database) {
+    console.warn(`[Firebase] Cannot perform "${operation}" — Firebase is not configured.`);
+  }
+  return database;
+}
+
 // --- Platform Users (Shared/Admin management) ---
 export async function loadPlatformUsers(): Promise<PlatformUser[] | null> {
+  const database = requireDb('loadPlatformUsers');
+  if (!database) return null;
+
   const path = 'platform_users';
   try {
-    const q = query(collection(db, path));
+    const q = query(collection(database, path));
     const snapshot = await getDocs(q);
     if (snapshot.empty) return null;
     const list: PlatformUser[] = [];
@@ -112,11 +162,14 @@ export async function loadPlatformUsers(): Promise<PlatformUser[] | null> {
 }
 
 export async function savePlatformUsers(users: PlatformUser[]): Promise<void> {
+  const database = requireDb('savePlatformUsers');
+  if (!database) return;
+
   const path = 'platform_users';
   try {
     // Save each user as an individual document to make it queryable/manageable
     for (const u of users) {
-      const userRef = doc(db, path, u.id);
+      const userRef = doc(database, path, u.id);
       await setDoc(userRef, u, { merge: true });
     }
   } catch (error) {
@@ -125,9 +178,12 @@ export async function savePlatformUsers(users: PlatformUser[]): Promise<void> {
 }
 
 export async function deletePlatformUserFromDb(userId: string): Promise<void> {
+  const database = requireDb('deletePlatformUserFromDb');
+  if (!database) return;
+
   const path = `platform_users/${userId}`;
   try {
-    const userRef = doc(db, 'platform_users', userId);
+    const userRef = doc(database, 'platform_users', userId);
     await deleteDoc(userRef);
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
@@ -148,9 +204,12 @@ export interface UserProfileData {
 }
 
 export async function loadUserProfile(email: string): Promise<UserProfileData | null> {
+  const database = requireDb('loadUserProfile');
+  if (!database) return null;
+
   const path = `user_profiles/${email.toLowerCase()}`;
   try {
-    const docRef = doc(db, 'user_profiles', email.toLowerCase());
+    const docRef = doc(database, 'user_profiles', email.toLowerCase());
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       return docSnap.data() as UserProfileData;
@@ -162,9 +221,12 @@ export async function loadUserProfile(email: string): Promise<UserProfileData | 
 }
 
 export async function saveUserProfile(email: string, profile: UserProfileData): Promise<void> {
+  const database = requireDb('saveUserProfile');
+  if (!database) return;
+
   const path = `user_profiles/${email.toLowerCase()}`;
   try {
-    const docRef = doc(db, 'user_profiles', email.toLowerCase());
+    const docRef = doc(database, 'user_profiles', email.toLowerCase());
     await setDoc(docRef, profile, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
@@ -173,9 +235,12 @@ export async function saveUserProfile(email: string, profile: UserProfileData): 
 
 // --- User Chats (Private per user email) ---
 export async function loadUserChats(email: string): Promise<any[] | null> {
+  const database = requireDb('loadUserChats');
+  if (!database) return null;
+
   const path = `user_chats/${email.toLowerCase()}`;
   try {
-    const docRef = doc(db, 'user_chats', email.toLowerCase());
+    const docRef = doc(database, 'user_chats', email.toLowerCase());
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
@@ -188,9 +253,12 @@ export async function loadUserChats(email: string): Promise<any[] | null> {
 }
 
 export async function saveUserChats(email: string, chats: any[]): Promise<void> {
+  const database = requireDb('saveUserChats');
+  if (!database) return;
+
   const path = `user_chats/${email.toLowerCase()}`;
   try {
-    const docRef = doc(db, 'user_chats', email.toLowerCase());
+    const docRef = doc(database, 'user_chats', email.toLowerCase());
     await setDoc(docRef, { chats }, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
@@ -199,9 +267,12 @@ export async function saveUserChats(email: string, chats: any[]): Promise<void> 
 
 // --- User Knowledge Base (Private per user email) ---
 export async function loadUserKnowledgeBase(email: string): Promise<UploadedFile[] | null> {
+  const database = requireDb('loadUserKnowledgeBase');
+  if (!database) return null;
+
   const path = `user_knowledge_base/${email.toLowerCase()}`;
   try {
-    const docRef = doc(db, 'user_knowledge_base', email.toLowerCase());
+    const docRef = doc(database, 'user_knowledge_base', email.toLowerCase());
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
@@ -214,9 +285,12 @@ export async function loadUserKnowledgeBase(email: string): Promise<UploadedFile
 }
 
 export async function saveUserKnowledgeBase(email: string, files: UploadedFile[]): Promise<void> {
+  const database = requireDb('saveUserKnowledgeBase');
+  if (!database) return;
+
   const path = `user_knowledge_base/${email.toLowerCase()}`;
   try {
-    const docRef = doc(db, 'user_knowledge_base', email.toLowerCase());
+    const docRef = doc(database, 'user_knowledge_base', email.toLowerCase());
     await setDoc(docRef, { files }, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
