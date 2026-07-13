@@ -144,6 +144,7 @@ export default function App() {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(false);
+  const [hasLoadedFromFirebase, setHasLoadedFromFirebase] = useState(false);
   const [knowledgeBase, setKnowledgeBase] = useState<UploadedFile[]>([]);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
 
@@ -329,6 +330,7 @@ export default function App() {
       } catch (error) {
         console.error("Error synchronizing with Firebase, using local cached data.", error);
       } finally {
+        setHasLoadedFromFirebase(true);
         // Enforce a small delay to make the beautiful skeleton loader visible and smooth
         setTimeout(() => {
           setIsInitialLoading(false);
@@ -341,14 +343,14 @@ export default function App() {
 
   // Sync platform users to Firestore whenever the state is modified
   useEffect(() => {
-    if (isLoggedIn && users.length > 0) {
+    if (isLoggedIn && hasLoadedFromFirebase && users.length > 0) {
       savePlatformUsers(users);
     }
-  }, [users, isLoggedIn]);
+  }, [users, isLoggedIn, hasLoadedFromFirebase]);
 
   // 3. Auto-sync Profile changes to Firestore
   useEffect(() => {
-    if (!isLoggedIn || !profileEmail) return;
+    if (!isLoggedIn || !profileEmail || !hasLoadedFromFirebase) return;
     const currentProfile: UserProfileData = {
       name: profileName,
       email: profileEmail,
@@ -361,19 +363,19 @@ export default function App() {
       notifySound: profileNotifySound
     };
     saveUserProfile(profileEmail.toLowerCase(), currentProfile);
-  }, [profileName, profileEmail, profilePhone, profileLanguage, profileTimeZone, profileTwoFactor, profileNotifyEmail, profileNotifySystem, profileNotifySound, isLoggedIn]);
+  }, [profileName, profileEmail, profilePhone, profileLanguage, profileTimeZone, profileTwoFactor, profileNotifyEmail, profileNotifySystem, profileNotifySound, isLoggedIn, hasLoadedFromFirebase]);
 
   // 4. Auto-sync Chats to Firestore
   useEffect(() => {
-    if (!isLoggedIn || !profileEmail || chats.length === 0) return;
+    if (!isLoggedIn || !profileEmail || !hasLoadedFromFirebase || chats.length === 0) return;
     saveUserChats(profileEmail.toLowerCase(), chats);
-  }, [chats, profileEmail, isLoggedIn]);
+  }, [chats, profileEmail, isLoggedIn, hasLoadedFromFirebase]);
 
   // 5. Auto-sync Knowledge Base to Firestore
   useEffect(() => {
-    if (!isLoggedIn || !profileEmail) return;
+    if (!isLoggedIn || !profileEmail || !hasLoadedFromFirebase) return;
     saveUserKnowledgeBase(profileEmail.toLowerCase(), knowledgeBase);
-  }, [knowledgeBase, profileEmail, isLoggedIn]);
+  }, [knowledgeBase, profileEmail, isLoggedIn, hasLoadedFromFirebase]);
 
   const activeChat = chats.find(c => c.id === activeChatId) || chats[0] || {
     id: '1',
