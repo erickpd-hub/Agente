@@ -5,12 +5,11 @@ import multer from "multer";
 import Groq from "groq-sdk";
 import fs from "fs";
 import os from "os";
-import { createRequire } from 'module';
-// Use __filename in CJS (esbuild output for Vercel), fallback to import.meta.url in ESM (dev)
-const _require = createRequire(typeof __filename !== 'undefined' ? __filename : import.meta.url);
+import pdfParseModule from "pdf-parse";
+import mammoth from "mammoth";
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const pdf: (buf: Buffer) => Promise<{ text: string }> = (_require('pdf-parse') as any).default ?? _require('pdf-parse');
-const mammoth = _require('mammoth') as { extractRawText: (opts: { buffer: Buffer }) => Promise<{ value: string }> };
+const pdf: (buf: Buffer) => Promise<{ text: string }> = (pdfParseModule as any).default ?? pdfParseModule;
 
 // Use system temp directory for file uploads which is Vercel friendly
 const tempDir = path.join(os.tmpdir(), "uploads");
