@@ -6,8 +6,11 @@ import path from "path";
 const PORT = 3000;
 
 async function startServer() {
+  // Treat Vercel deployments as production even if NODE_ENV is not explicitly set
+  const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+
   // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
+  if (!isProd) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
