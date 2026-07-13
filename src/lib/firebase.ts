@@ -15,6 +15,7 @@ import { PlatformUser, Message, UploadedFile } from '../types';
 
 // Firebase configuration — values injected by Vite (import.meta.env) at build time
 const env = (import.meta as any).env || process.env;
+const isProd = (import.meta as any).env?.PROD ?? false;
 
 const firebaseConfig = {
   projectId:         env.VITE_FIREBASE_PROJECT_ID          || "",
@@ -28,19 +29,17 @@ const firebaseConfig = {
 // Separate: custom Firestore database id (not part of the base config object)
 const firestoreDatabaseId = env.VITE_FIREBASE_DATABASE_ID || "(default)";
 
-// Guard: warn loudly when required variables are missing (helps debug Vercel blank-page issues)
+// Guard: warn when required Firebase config values are missing
 const requiredKeys = ["apiKey", "authDomain", "projectId", "appId"] as const;
 const missingKeys = requiredKeys.filter(k => !firebaseConfig[k]);
-if (missingKeys.length > 0) {
-  console.warn(
-    "[Firebase] Missing environment variables:",
-    missingKeys.map(k => `VITE_FIREBASE_${k.replace(/([A-Z])/g, "_$1").toUpperCase()}`).join(", "),
-    "— some features may not work correctly."
-  );
+if (isProd && missingKeys.length > 0) {
+  console.error('[Firebase] Missing env variables in production:', missingKeys);
 }
 
-// Initialize Firebase App
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase App only if keys are present, otherwise stub/warn
+const app = (missingKeys.length === 0) 
+  ? initializeApp(firebaseConfig) 
+  : null;
 
 // Initialize Firestore with custom databaseId
 export const db = getFirestore(app, firestoreDatabaseId);
