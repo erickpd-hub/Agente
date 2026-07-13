@@ -828,7 +828,13 @@ export default function App() {
               </p>
             </div>
 
-            <div className="space-y-4">
+            <form 
+              className="space-y-4" 
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleLogin();
+              }}
+            >
               <div>
                 <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider mb-1">Correo Electrónico</label>
                 <div className="relative">
@@ -875,13 +881,13 @@ export default function App() {
 
               <div className="pt-2">
                 <button 
-                  onClick={handleLogin}
+                  type="submit"
                   className="w-full bg-neutral-950 hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200 text-white rounded py-2.5 text-sm font-semibold transition-colors shadow hover:shadow-md cursor-pointer flex items-center justify-center gap-2"
                 >
                   <span>Entrar</span>
                 </button>
               </div>
-            </div>
+            </form>
 
 
           </div>
