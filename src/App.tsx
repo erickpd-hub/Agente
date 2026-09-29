@@ -87,9 +87,12 @@ export default function App() {
       document.removeEventListener('mouseleave', handleMouseLeave);
     };
   }, []);
-  const [selectedModel, setSelectedModel] = useState<string>('llama-3.3-70b-versatile');
+  const [selectedModel, setSelectedModel] = useState<string>('openai/gpt-oss-120b');
   const [systemPrompt, setSystemPrompt] = useState('Eres un agente de soporte técnico estricto que responde ÚNICAMENTE utilizando la información de los documentos proporcionados en la Base de Conocimiento.\n\nReglas críticas:\n1. Responde SIEMPRE y ÚNICAMENTE basándote en el contenido explícito de los documentos provistos. Si la pregunta del usuario no se puede responder con la base de conocimiento, debes decir cortésmente que la información no está disponible.\n2. Al responder, debes citar obligatoriamente el nombre del archivo exacto de donde obtuviste la información.');
   const [modelUsage, setModelUsage] = useState<Record<string, { tokens: number }>>({
+    'openai/gpt-oss-120b': { tokens: 0 },
+    'qwen/qwen3.8-27b': { tokens: 0 },
+    'openai/gpt-oss-20b': { tokens: 0 },
     'llama-3.3-70b-versatile': { tokens: 0 },
     'llama-3.1-8b-instant': { tokens: 0 },
     'gemini-2.5-pro': { tokens: 0 },
@@ -101,6 +104,9 @@ export default function App() {
   });
   
   const models: Record<string, { name: string, context: number, tpm: number }> = {
+    'openai/gpt-oss-120b': { name: 'GPT-OSS 120B (Groq)', context: 131072, tpm: 8000 },
+    'qwen/qwen3.8-27b': { name: 'Qwen 3.8 27B (Groq)', context: 131072, tpm: 8000 },
+    'openai/gpt-oss-20b': { name: 'GPT-OSS 20B (Groq)', context: 131072, tpm: 8000 },
     'llama-3.3-70b-versatile': { name: 'Llama 3.3 70B', context: 131072, tpm: 8000 },
     'llama-3.1-8b-instant': { name: 'Llama 3.1 8B', context: 131072, tpm: 8000 },
     'gemini-2.5-pro': { name: 'Gemini 2.5 Pro', context: 2097152, tpm: 15000 },
@@ -159,11 +165,20 @@ export default function App() {
       try {
         const parsed = JSON.parse(saved);
         // Make sure the env admin user is present and has the updated password/role
-        const adminIndex = parsed.findIndex((u: any) => u.email === defaultAdminEmail);
+        const adminIndex = parsed.findIndex((u: any) => u.email?.toLowerCase() === defaultAdminEmail?.toLowerCase());
         if (adminIndex !== -1) {
           parsed[adminIndex].password = defaultAdminPassword;
-        } else {
+        } else if (defaultAdminEmail) {
           parsed.unshift({ id: 'admin_env', name: 'Admin Principal', email: defaultAdminEmail, role: 'admin', password: defaultAdminPassword });
+        }
+
+        // Make sure the env demo user is present and has the updated password/role
+        const demoIndex = parsed.findIndex((u: any) => u.email?.toLowerCase() === defaultUserEmail?.toLowerCase() || u.id === '2' || u.id === 'user_env');
+        if (demoIndex !== -1) {
+          parsed[demoIndex].email = defaultUserEmail;
+          parsed[demoIndex].password = defaultUserPassword;
+        } else if (defaultUserEmail) {
+          parsed.push({ id: 'user_env', name: 'Usuario Demo', email: defaultUserEmail, role: 'user', password: defaultUserPassword });
         }
         return parsed;
       } catch (e) {
@@ -759,7 +774,9 @@ export default function App() {
       const foundUser = users.find(u => u.email.toLowerCase() === trimmedEmail.toLowerCase());
 
       if (foundUser) {
-        const expectedPassword = foundUser.password || (foundUser.email === defaultAdminEmail ? defaultAdminPassword : '');
+        const isEnvAdmin = defaultAdminEmail && foundUser.email.toLowerCase() === defaultAdminEmail.toLowerCase();
+        const isEnvDemo = defaultUserEmail && foundUser.email.toLowerCase() === defaultUserEmail.toLowerCase();
+        const expectedPassword = (isEnvAdmin ? defaultAdminPassword : (isEnvDemo ? defaultUserPassword : foundUser.password)) || foundUser.password;
         if (expectedPassword && trimmedPassword === expectedPassword) {
           setLoginError('');
           setCurrentUserRole(foundUser.role);
@@ -772,13 +789,24 @@ export default function App() {
       }
 
       // Direct fallback to .env credentials
-      if (trimmedEmail.toLowerCase() === defaultAdminEmail.toLowerCase() && trimmedPassword === defaultAdminPassword) {
+      if (defaultAdminEmail && trimmedEmail.toLowerCase() === defaultAdminEmail.toLowerCase() && trimmedPassword === defaultAdminPassword) {
         setLoginError('');
         setCurrentUserRole('admin');
         setProfileName('Admin Principal');
         setProfileEmail(defaultAdminEmail);
         setIsLoggedIn(true);
         sileo.success({ title: '¡Bienvenido!', description: 'Sesión iniciada como Administrador Principal.' });
+        return;
+      }
+
+      // Direct fallback to .env credentials for demo user
+      if (defaultUserEmail && trimmedEmail.toLowerCase() === defaultUserEmail.toLowerCase() && trimmedPassword === defaultUserPassword) {
+        setLoginError('');
+        setCurrentUserRole('user');
+        setProfileName('Usuario Demo');
+        setProfileEmail(defaultUserEmail);
+        setIsLoggedIn(true);
+        sileo.success({ title: '¡Bienvenido!', description: 'Sesión iniciada como Usuario Demo.' });
         return;
       }
 
@@ -2022,7 +2050,7 @@ export default function App() {
                       >
                         {Object.entries(models).map(([key, info]) => (
                           <option key={key} value={key}>
-                            {info.name} (Contexto: {info.context >= 1000000 ? `${info.context/1000000}M` : `${info.context/1000}k`}{key === 'llama-3.3-70b-versatile' ? ', Recomendado' : ''})
+                            {info.name} (Contexto: {info.context >= 1000000 ? `${info.context/1000000}M` : `${info.context/1000}k`}{key === 'openai/gpt-oss-120b' ? ', Recomendado' : ''})
                           </option>
                         ))}
                       </select>

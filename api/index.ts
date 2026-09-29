@@ -59,11 +59,32 @@ router.post("/chat", async (req, res) => {
       ...messages
     ];
 
-    const chatCompletion = await groq.chat.completions.create({
-      messages: formattedMessages,
-      model: model || "llama-3.3-70b-versatile",
-      temperature: 0.1, // lowered for high fidelity and less hallucinations
-    });
+    let targetModel = model || "openai/gpt-oss-120b";
+    // Map deprecated or unavailable models
+    if (targetModel.includes("llama") || targetModel.includes("gemini") || targetModel.includes("deepseek") || targetModel.includes("gpt-4") || targetModel.includes("claude")) {
+      targetModel = "openai/gpt-oss-120b";
+    }
+
+    let chatCompletion;
+    try {
+      chatCompletion = await groq.chat.completions.create({
+        messages: formattedMessages,
+        model: targetModel,
+        temperature: 0.1, // lowered for high fidelity and less hallucinations
+      });
+    } catch (modelError: any) {
+      // If the selected model returns 404/model_not_found, fallback to qwen or gpt-oss
+      if (modelError?.status === 404 || modelError?.message?.includes("model") || modelError?.message?.includes("not exist")) {
+        console.warn(`Model ${targetModel} not accessible, attempting fallback to qwen/qwen3.8-27b...`);
+        chatCompletion = await groq.chat.completions.create({
+          messages: formattedMessages,
+          model: "qwen/qwen3.8-27b",
+          temperature: 0.1,
+        });
+      } else {
+        throw modelError;
+      }
+    }
 
     res.json({ message: chatCompletion.choices[0]?.message?.content || "", usage: chatCompletion.usage });
   } catch (error: any) {
